@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+<meta name="theme-color" content="#1a1a2e"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<title>ОПМ — Контроль качества крепежа</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', sans-serif; background: #1a1a2e; color: #fff; }
+  .container { max-width: 640px; margin: 0 auto; padding: 16px; }
+  
+  .nav { background: #1a1a2e; border-bottom: 1px solid #F5B041; padding: 14px 20px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 100; }
+  .nav-back { background: rgba(255,255,255,0.1); border: none; color: #F5B041; font-size: 20px; cursor: pointer; padding: 8px 12px; border-radius: 12px; }
+  .nav-title { font-size: 15px; font-weight: 600; flex: 1; }
+  
+  .screen { display: none; min-height: 100vh; background: #1a1a2e; }
+  .screen.active { display: block; }
+  
+  .card { background: #2d2d44; border-radius: 20px; padding: 20px; margin-bottom: 16px; border: 1px solid rgba(245, 176, 65, 0.2); }
+  .card-title { font-size: 12px; font-weight: 700; text-transform: uppercase; color: #F5B041; margin-bottom: 14px; }
+  
+  .btn { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 14px 24px; border-radius: 14px; font-size: 15px; font-weight: 700; cursor: pointer; border: none; width: 100%; transition: 0.2s; }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary { background: #F5B041; color: #1a1a2e; }
+  .btn-outline { background: transparent; color: #F5B041; border: 2px solid #F5B041; }
+  .btn-danger { background: #dc2626; color: #fff; }
+  .btn-warning { background: #f59e0b; color: #1a1a2e; }
+  
+  input, select, textarea { width: 100%; background: #1a1a2e; border: 1px solid rgba(245, 176, 65, 0.3); border-radius: 12px; color: #fff; padding: 12px 14px; font-size: 14px; margin-bottom: 16px; }
+  label { display: block; font-size: 12px; color: #B0B7D0; margin-bottom: 6px; font-weight: 600; }
+  
+  .scan-drop { border: 2px dashed #F5B041; border-radius: 20px; padding: 40px 20px; text-align: center; cursor: pointer; background: rgba(26,26,46,0.5); }
+  .scan-drop .icon { font-size: 48px; margin-bottom: 12px; }
+  #scan-preview { width: 100%; border-radius: 16px; display: none; margin-top: 16px; }
+  
+  .checklist-item { background: #2d2d44; border-radius: 16px; padding: 16px; margin-bottom: 12px; position: relative; }
+  .ci-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+  .ci-num { background: #F5B041; color: #1a1a2e; border-radius: 10px; padding: 4px 10px; font-size: 12px; font-weight: 800; }
+  .ci-status { display: flex; gap: 8px; margin-left: auto; }
+  .status-btn { padding: 6px 16px; border-radius: 10px; font-size: 12px; font-weight: 700; border: 2px solid transparent; cursor: pointer; }
+  .status-btn.ok { border-color: #10b981; color: #10b981; background: transparent; }
+  .status-btn.ok.active { background: #10b981; color: #fff; }
+  .status-btn.fail { border-color: #dc2626; color: #dc2626; background: transparent; }
+  .status-btn.fail.active { background: #dc2626; color: #fff; }
+  .delete-item { position: absolute; top: 12px; right: 12px; background: rgba(220,38,38,0.2); border: none; color: #dc2626; width: 28px; height: 28px; border-radius: 20px; cursor: pointer; }
+  
+  .defect-section { display: none; margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(245,176,65,0.2); }
+  .defect-section.show { display: block; }
+  
+  .action-grid { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; }
+  .action-check { display: flex; align-items: center; gap: 8px; background: #1a1a2e; padding: 10px 14px; border-radius: 12px; font-size: 12px; cursor: pointer; }
+  .action-check input { width: 16px; margin: 0; }
+  
+  .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
+  .photo-thumb { aspect-ratio: 1; border-radius: 12px; overflow: hidden; position: relative; background: #1a1a2e; border: 1px solid #F5B041; }
+  .photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .photo-del { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.7); border: none; color: #fff; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; }
+  .photo-add { aspect-ratio: 1; border-radius: 12px; border: 2px dashed #F5B041; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; }
+  .photo-add input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  
+  .steps { display: flex; gap: 0; margin-bottom: 20px; background: #2d2d44; border-radius: 16px; padding: 6px; }
+  .step { flex: 1; text-align: center; padding: 10px 6px; font-size: 11px; font-weight: 700; color: #B0B7D0; border-radius: 12px; }
+  .step.active { background: #F5B041; color: #1a1a2e; }
+  .step.done { color: #10b981; }
+  
+  .hero { text-align: center; padding: 40px 20px; background: linear-gradient(135deg, #1a1a2e, #2d2d44); }
+  .hero h1 { font-size: 28px; font-weight: 800; margin-bottom: 8px; background: linear-gradient(135deg, #fff, #F5B041); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .hero p { color: #B0B7D0; }
+  
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #2d2d44; border: 1px solid #F5B041; border-radius: 40px; padding: 12px 24px; font-size: 13px; z-index: 1000; opacity: 0; transition: 0.3s; white-space: nowrap; color: #F5B041; }
+  .toast.show { opacity: 1; }
+  
+  .badge-fail { background: rgba(220,38,38,0.2); color: #dc2626; padding: 4px 10px; border-radius: 20px; font-size: 11px; }
+  .stat-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; }
+  .flex-row { display: flex; gap: 12px; }
+  .flex-row .btn { flex: 1; }
+  .text-muted { color: #B0B7D0; font-size: 11px; }
+  .category-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+  .cat-1 { background: #dc2626; color: #fff; }
+  .cat-2 { background: #f59e0b; color: #1a1a2e; }
+  .cat-3 { background: #10b981; color: #fff; }
+</style>
+</head>
+<body>
+
+<!-- HOME -->
+<div id="screen-home" class="screen active">
+  <div class="hero">
+    <div style="font-size: 48px; margin-bottom: 16px;">🔩</div>
+    <h1>Контроль крепежа</h1>
+    <p>ГОСТ ISO 3269-2021 · Категории 1, 2, 3</p>
+  </div>
+  <div class="container">
+    <button class="btn btn-primary" onclick="goTo('screen-scan')">📷 Сканировать акт контроля</button>
+    <button class="btn btn-outline" onclick="goTo('screen-history')" style="margin-top: 12px;">📋 История актов</button>
+    
+    <div class="card" style="margin-top: 20px;">
+      <div class="card-title">📖 Шпаргалка приёмщика</div>
+      <div><span class="category-badge cat-1">Кат.1</span> Критические: мех.свойства — 1 брак → брак партии</div>
+      <div style="margin-top: 10px;"><span class="category-badge cat-2">Кат.2</span> Важные размеры — 1 брак → доп.выборка n</div>
+      <div style="margin-top: 10px;"><span class="category-badge cat-3">Кат.3</span> Общие — допускается Ac браков</div>
+    </div>
+  </div>
+</div>
+
+<!-- SCAN -->
+<div id="screen-scan" class="screen">
+  <div class="nav">
+    <button class="nav-back" onclick="goTo('screen-home')">←</button>
+    <span class="nav-title">Сканирование акта</span>
+  </div>
+  <div class="container">
+    <div class="steps"><div class="step active">📷 Скан</div><div class="step">✏️ Несоответствия</div><div class="step">📄 Акт</div></div>
+    
+    <div class="card">
+      <div class="card-title">📸 Загрузите фото акта</div>
+      <div class="scan-drop" id="scan-drop">
+        <input type="file" accept="image/*" capture="environment" id="scan-file" onchange="handleScanFile(this)"/>
+        <div class="icon">📄</div>
+        <p>Нажмите для фото или выбора файла</p>
+      </div>
+      <img id="scan-preview"/>
+    </div>
+    
+    <div class="card" id="meta-card" style="display:none;">
+      <div class="card-title">Реквизиты поставки</div>
+      <label>Поставщик</label>
+      <input id="f-supplier" placeholder="ООО КРЕП-КОМП"/>
+      <label>Номер заказа / счета</label>
+      <input id="f-order" placeholder="УТФ00002960"/>
+      <label>Дата поставки</label>
+      <input id="f-date" type="date"/>
+      <label>Покупатель</label>
+      <input id="f-buyer" value="ООО ОПМ"/>
+    </div>
+    
+    <button class="btn btn-primary" id="btn-next" style="display:none;" onclick="goToDefects()">Далее →</button>
+  </div>
+</div>
+
+<!-- DEFECTS -->
+<div id="screen-defects" class="screen">
+  <div class="nav">
+    <button class="nav-back" onclick="goTo('screen-scan')">←</button>
+    <span class="nav-title">Несоответствия</span>
+  </div>
+  <div class="container">
+    <div class="steps"><div class="step done">📷 Скан</div><div class="step active">✏️ Несоответствия</div><div class="step">📄 Акт</div></div>
+    
+    <div class="card" id="iso-card">
+      <div class="card-title">План выборочного контроля</div>
+      <div id="iso-info"></div>
+    </div>
+    
+    <div id="items-list"></div>
+    
+    <div class="flex-row" style="gap:12px; margin-top:8px;">
+      <button class="btn btn-primary" onclick="goToReport()">📄 Сформировать акт</button>
+      <button class="btn btn-warning" onclick="sendToManager()">📧 Рапорт</button>
+    </div>
+  </div>
+</div>
+
+<!-- REPORT -->
+<div id="screen-report" class="screen">
+  <div class="nav">
+    <button class="nav-back" onclick="goTo('screen-defects')">←</button>
+    <span class="nav-title">Акт несоответствия</span>
+  </div>
+  <div class="container">
+    <div class="steps"><div class="step done">📷 Скан</div><div class="step done">✏️ Несоответствия</div><div class="step active">📄 Акт</div></div>
+    
+    <div class="card"><div class="card-title">Сводка</div><div id="report-summary"></div></div>
+    <div id="report-items-preview"></div>
+    
+    <div class="card">
+      <div class="card-title">Комиссия</div>
+      <label>Начальник склада</label><input id="c-head" placeholder="Морозов А.Л."/>
+      <label>Руководитель ОТК</label><input id="c-otk" value="Губанов А.В."/>
+      <label>Специалист по претензиям</label><input id="c-claim" value="Гарина Н.В., Дувина С.В."/>
+      <label>Номер акта</label><input id="act-num" placeholder="авто"/>
+    </div>
+    
+    <button class="btn btn-primary" onclick="generateDocx()">⬇️ Скачать DOCX</button>
+    <button class="btn btn-outline" onclick="saveToHistory()" style="margin-top:12px;">💾 Сохранить в историю</button>
+  </div>
+</div>
+
+<!-- HISTORY -->
+<div id="screen-history" class="screen">
+  <div class="nav"><button class="nav-back" onclick="goTo('screen-home')">←</button><span class="nav-title">История</span></div>
+  <div class="container"><div id="history-list" style="text-align:center;padding:40px;">Нет сохранённых актов</div></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+<script>
+// Состояние
+const state = {
+  items: [], supplier: '', order: '', date: '', buyer: 'ООО ОПМ'
+};
+
+// Типы несоответствий
+const NONCONFORMITY_TYPES = {
+  shortage: { label: 'Недопоставка', article: 'ст. 466 ГК РФ',
+    actions: [{code:'demand_delivery',text:'Потребовать передать недостающее количество'},{code:'return_goods',text:'Произвести возврат товара'},{code:'refund_money',text:'Потребовать возврата уплаченной суммы'}] },
+  surplus: { label: 'Излишки', article: 'ст. 466, 468 ГК РФ',
+    actions: [{code:'accept_pay',text:'Принять и оплатить товар'},{code:'refuse_export',text:'Отказаться и потребовать вывоз'}] },
+  assortment: { label: 'Пересорт', article: 'ст. 468 ГК РФ',
+    actions: [{code:'accept_all',text:'Принять весь товар'},{code:'refuse_nonconforming',text:'Отказаться от несоответствующего'},{code:'demand_replace',text:'Потребовать замену'},{code:'refuse_all',text:'Отказаться от всего'}] },
+  quality: { label: 'Брак', article: 'ст. 475 ГК РФ',
+    actions: [{code:'demand_replacement',text:'Потребовать замену'},{code:'demand_repair',text:'Потребовать ремонта'},{code:'demand_price_reduction',text:'Требовать уценки'},{code:'refund_contract',text:'Отказаться от договора'}] },
+  packaging: { label: 'Упаковка', article: 'ст. 482, 475 ГК РФ',
+    actions: [{code:'demand_packaging',text:'Потребовать упаковку'},{code:'demand_replacement_packaging',text:'Потребовать замену товара'}] },
+  documentation: { label: 'Документация', article: 'ст. 464 ГК РФ',
+    actions: [{code:'demand_docs',text:'Потребовать документы'},{code:'refund_contract_docs',text:'Отказаться от договора'}] }
+};
+
+// Навигация
+function goTo(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (id === 'screen-history') renderHistory();
+}
+
+// Обработка фото
+function handleScanFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    state.imageB64 = e.target.result;
+    document.getElementById('scan-preview').src = e.target.result;
+    document.getElementById('scan-preview').style.display = 'block';
+    document.getElementById('meta-card').style.display = 'block';
+    document.getElementById('btn-next').style.display = 'block';
+    document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+  };
+  reader.readAsDataURL(file);
+}
+
+function goToDefects() {
+  state.supplier = document.getElementById('f-supplier').value;
+  state.order = document.getElementById('f-order').value;
+  state.date = document.getElementById('f-date').value;
+  state.buyer = document.getElementById('f-buyer').value;
+  if (!state.items.length) state.items = [{id:0, name:'', code:'', qty:0, unit:'шт', nonconformityType:'quality', actions:[], note:'', photos:[], status:null}];
+  renderISO();
+  renderItems();
+  goTo('screen-defects');
+}
+
+function renderISO() {
+  const total = state.items.reduce((s,it) => s + (Number(it.qty)||0), 0);
+  if (!total) { document.getElementById('iso-card').style.display = 'none'; return; }
+  document.getElementById('iso-card').style.display = 'block';
+  document.getElementById('iso-info').innerHTML = `<div class="stat-row"><span>Объём партии</span><span class="val">${total} шт.</span></div>`;
+}
+
+function renderItems() {
+  const list = document.getElementById('items-list');
+  list.innerHTML = '';
+  state.items.forEach((item, idx) => {
+    const nc = NONCONFORMITY_TYPES[item.nonconformityType] || NONCONFORMITY_TYPES.quality;
+    list.innerHTML += `
+      <div class="checklist-item" id="ci-${idx}">
+        <button class="delete-item" onclick="deleteItem(${idx})">✕</button>
+        <div class="ci-header">
+          <span class="ci-num">${idx+1}</span>
+          <input style="flex:1;background:#1a1a2e;border:1px solid #F5B041;border-radius:10px;padding:10px;color:#fff;" value="${escape(item.name)}" placeholder="Наименование" oninput="state.items[${idx}].name=this.value">
+          <div class="ci-status">
+            <button class="status-btn ok ${item.status==='ok'?'active':''}" onclick="setStatus(${idx},'ok')">✓ OK</button>
+            <button class="status-btn fail ${item.status==='fail'?'active':''}" onclick="setStatus(${idx},'fail')">✗ Брак</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <div style="flex:1"><input value="${escape(item.code)}" placeholder="Код" oninput="state.items[${idx}].code=this.value"></div>
+          <div style="flex:1"><input type="number" value="${item.qty}" placeholder="Кол-во" oninput="state.items[${idx}].qty=+this.value;renderISO()"></div>
+          <div style="flex:0.5"><select onchange="state.items[${idx}].unit=this.value">${['шт','кг','уп'].map(u=>`<option ${item.unit===u?'selected':''}>${u}</option>`).join('')}</select></div>
+        </div>
+        <div><select onchange="state.items[${idx}].nonconformityType=this.value;renderItems()">
+          ${Object.entries(NONCONFORMITY_TYPES).map(([k,cat])=>`<option value="${k}" ${item.nonconformityType===k?'selected':''}>${cat.label}</option>`).join('')}
+        </select></div>
+        <div class="defect-section ${item.status==='fail'?'show':''}">
+          <div class="action-grid">
+            ${nc.actions.map(a => `<label class="action-check"><input type="checkbox" ${item.actions.includes(a.code)?'checked':''} onchange="toggleAction(${idx},'${a.code}',this)"> ${a.text}</label>`).join('')}
+          </div>
+          <textarea placeholder="Примечание" oninput="state.items[${idx}].note=this.value">${escape(item.note)}</textarea>
+          <div class="photo-grid" id="photos-${idx}">
+            ${(item.photos||[]).map((p,pi)=>`<div class="photo-thumb"><img src="${p}"><button class="photo-del" onclick="removePhoto(${idx},${pi})">✕</button></div>`).join('')}
+            <div class="photo-add"><input type="file" accept="image/*" capture="environment" onchange="addPhoto(${idx},this)"><span>📷</span><span>Добавить</span></div>
+          </div>
+        </div>
+      </div>`;
+  });
+  const addBtn = document.createElement('button');
+  addBtn.className = 'btn btn-outline';
+  addBtn.style.marginTop = '12px';
+  addBtn.innerHTML = '+ Добавить позицию';
+  addBtn.onclick = () => { state.items.push({id:state.items.length, name:'', code:'', qty:0, unit:'шт', nonconformityType:'quality', actions:[], note:'', photos:[], status:null}); renderItems(); };
+  list.appendChild(addBtn);
+}
+
+function setStatus(idx, status) { state.items[idx].status = status; renderItems(); }
+function toggleAction(idx, code, chk) { 
+  if (chk.checked) state.items[idx].actions.push(code);
+  else state.items[idx].actions = state.items[idx].actions.filter(a => a !== code);
+}
+function deleteItem(idx) { if(confirm('Удалить?')){ state.items.splice(idx,1); renderItems(); renderISO(); } }
+function addPhoto(idx, input) {
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => { state.items[idx].photos.push(e.target.result); renderItems(); showToast('Фото добавлено'); };
+  reader.readAsDataURL(file);
+}
+function removePhoto(idx, pi) { state.items[idx].photos.splice(pi,1); renderItems(); }
+
+function goToReport() {
+  const failed = state.items.filter(it=>it.status==='fail');
+  if(!failed.length){ showToast('Нет позиций с отклонениями'); return; }
+  document.getElementById('act-num').value = new Date().toISOString().slice(0,19).replace(/:/g,'-');
+  const total = state.items.reduce((s,it)=>s+(Number(it.qty)||0),0);
+  document.getElementById('report-summary').innerHTML = `
+    <div class="stat-row"><span>Позиций всего</span><span>${state.items.length}</span></div>
+    <div class="stat-row"><span>С отклонениями</span><span style="color:#dc2626;">${failed.length}</span></div>
+    <div class="stat-row"><span>Объём партии</span><span>${total} шт.</span></div>
+    <div class="stat-row"><span>Поставщик</span><span>${state.supplier||'—'}</span></div>`;
+  document.getElementById('report-items-preview').innerHTML = failed.map(it=>`<div class="card" style="border-left:3px solid #dc2626;"><b>${it.name||'Позиция'}</b><br>${it.qty} ${it.unit}${it.code?' · '+it.code:''}<br><span class="text-muted">${it.note||''}</span></div>`).join('');
+  goTo('screen-report');
+}
+
+async function generateDocx() {
+  showToast('Формирование...');
+  try {
+    const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, AlignmentType, ImageRun } = docx;
+    const failed = state.items.filter(it=>it.status==='fail');
+    const actNum = document.getElementById('act-num').value;
+    const cHead = document.getElementById('c-head').value;
+    const cOtk = document.getElementById('c-otk').value;
+    const cClaim = document.getElementById('c-claim').value;
+    const dateStr = state.date ? new Date(state.date).toLocaleDateString('ru-RU') : new Date().toLocaleDateString('ru-RU');
+    
+    const p = (t, opts={}) => new Paragraph({ alignment: opts.align||AlignmentType.LEFT, children:[new TextRun({text:t, bold:opts.bold, size:22})] });
+    const pCenter = (t, opts={}) => new Paragraph({ alignment:AlignmentType.CENTER, children:[new TextRun({text:t, bold:opts.bold, size:24})] });
+    
+    const children = [
+      pCenter('ООО «ОПМ»',{bold:true}), pCenter('АКТ',{bold:true,size:28}), pCenter('о выявленном несоответствии',{bold:true}),
+      p(`Номер: ${actNum}`), p(`Дата: ${dateStr}`),
+      p(`Поставщик: ${state.supplier||'—'}`), p(`Покупатель: ${state.buyer}`),
+      p(`Заказ: ${state.order||'—'}`, {after:120}),
+      p('Комиссия:',{bold:true}), p(`Начальник склада: ${cHead||'Морозов А.Л.'}`), p(`Руководитель ОТК: ${cOtk||'Губанов А.В.'}`), p(`Специалист: ${cClaim||'Гарина Н.В., Дувина С.В.'}`),
+      p('Выявлены несоответствия:',{bold:true}),
+    ];
+    
+    const rows = [new TableRow({children:[new TableCell({children:[p('№')]}), new TableCell({children:[p('Товар')]}), new TableCell({children:[p('Кол-во')]}), new TableCell({children:[p('Дефект')]}), new TableCell({children:[p('Действия')]})]})];
+    failed.forEach((it,i)=>{
+      const nc = NONCONFORMITY_TYPES[it.nonconformityType];
+      rows.push(new TableRow({children:[new TableCell({children:[p(String(i+1))]}), new TableCell({children:[p(it.name)]}), new TableCell({children:[p(`${it.qty} ${it.unit}`)]}), new TableCell({children:[p(nc?.label||'Брак')]}), new TableCell({children:[p(it.actions.map(a=>nc?.actions.find(x=>x.code===a)?.text).filter(Boolean).join('; ')||'—')]})]}));
+    });
+    children.push(new Table({ rows }));
+    
+    const doc = new Document({ sections:[{ children }] });
+    const buf = await Packer.toBuffer(doc);
+    saveAs(new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}), `Акт_${actNum}.docx`);
+    showToast('✅ Документ скачан');
+  } catch(e) { showToast('Ошибка: '+e.message); }
+}
+
+function sendToManager() {
+  const failed = state.items.filter(it=>it.status==='fail');
+  if(!failed.length){ showToast('Нет брака'); return; }
+  const subject = encodeURIComponent(`Рапорт: Заказ ${state.order||'б/н'} | ${state.supplier||'—'}`);
+  const body = encodeURIComponent(`Уважаемый руководитель,\n\nНаправляю рапорт о несоответствиях.\n\nПоставщик: ${state.supplier||'—'}\nЗаказ: ${state.order||'—'}\nПозиций с браком: ${failed.length}\n\nДетали:\n${failed.map((it,i)=>`${i+1}. ${it.name} (${it.qty} ${it.unit})`).join('\n')}\n\nС уважением, ОТК`);
+  window.location.href = `mailto:avg@opm.ru?subject=${subject}&body=${body}`;
+  showToast('Открыт почтовый клиент');
+}
+
+function saveToHistory() {
+  const records = JSON.parse(localStorage.getItem('qc-history')||'[]');
+  records.unshift({ id:Date.now(), date:new Date().toLocaleDateString(), supplier:state.supplier, order:state.order, itemsFailed:state.items.filter(it=>it.status==='fail').length, actNum:document.getElementById('act-num').value });
+  localStorage.setItem('qc-history', JSON.stringify(records.slice(0,50)));
+  showToast('Сохранено');
+}
+
+function renderHistory() {
+  const records = JSON.parse(localStorage.getItem('qc-history')||'[]');
+  if(!records.length){
