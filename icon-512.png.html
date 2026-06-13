@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Save icon-512.png</title></head>
+<body>
+<img id="icon" style="image-rendering:pixelated; image-rendering:crisp-edges;">
+<script>
+const canvas = document.createElement('canvas');
+canvas.width = 512;
+canvas.height = 512;
+const ctx = canvas.getContext('2d');
+
+// Фон
+ctx.fillStyle = '#1a1a2e';
+ctx.fillRect(0, 0, 512, 512);
+
+// Градиент для фона
+const grad = ctx.createLinearGradient(0, 0, 512, 512);
+grad.addColorStop(0, '#1a1a2e');
+grad.addColorStop(1, '#2d2d44');
+ctx.fillStyle = grad;
+ctx.fillRect(0, 0, 512, 512);
+
+// Золотая рамка
+ctx.strokeStyle = '#F5B041';
+ctx.lineWidth = 6;
+ctx.strokeRect(20, 20, 472, 472);
+
+// Шестигранник (гайка)
+ctx.fillStyle = '#F5B041';
+ctx.beginPath();
+for (let i = 0; i < 6; i++) {
+  const angle = (i * 60 - 30) * Math.PI / 180;
+  const x = 256 + 110 * Math.cos(angle);
+  const y = 256 + 110 * Math.sin(angle);
+  if (i === 0) ctx.moveTo(x, y);
+  else ctx.lineTo(x, y);
+}
+ctx.closePath();
+ctx.fill();
+
+// Внутренний круг
+ctx.fillStyle = '#1a1a2e';
+ctx.beginPath();
+ctx.arc(256, 256, 65, 0, 2 * Math.PI);
+ctx.fill();
+
+// Крестик
+ctx.strokeStyle = '#F5B041';
+ctx.lineWidth = 10;
+ctx.beginPath();
+ctx.moveTo(256, 220);
+ctx.lineTo(256, 292);
+ctx.moveTo(220, 256);
+ctx.lineTo(292, 256);
+ctx.stroke();
+
+// Буква Q
+ctx.font = 'bold 110px "Inter", "Segoe UI", sans-serif';
+ctx.fillStyle = '#F5B041';
+ctx.fillText('Q', 256 - 58, 256 + 38);
+
+// Текст QC
+ctx.font = 'bold 32px "Inter", sans-serif';
+ctx.fillStyle = '#B0B7D0';
+ctx.fillText('QC', 256 - 32, 460);
+
+const img = canvas.toDataURL('image/png');
+document.getElementById('icon').src = img;
+document.write('<p><a href="'+img+'" download="icon-512.png">Скачать icon-512.png</a></p>');
+document.write('<p><img src="'+img+'" style="border:1px solid #ccc; width:256px; height:256px;"></p>');
+</script>
+</body>
+</html>

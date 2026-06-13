@@ -1,0 +1,15 @@
+{
+  "name": "ОПМ — Контроль качества крепежа",
+  "short_name": "ОПМ QC",
+  "description": "Контроль качества крепежа по ГОСТ ISO 3269-2021",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a2e",
+  "theme_color": "#F5B041",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ],
+  "lang": "ru"
+}
