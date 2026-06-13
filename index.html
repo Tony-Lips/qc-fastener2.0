@@ -90,6 +90,12 @@
   .sampling-grid { display: flex; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
   .sampling-item { flex: 1; background: #2d2d44; border-radius: 12px; padding: 10px; text-align: center; }
   .sampling-n { font-size: 28px; font-weight: 800; color: #F5B041; }
+  
+  .ocr-progress { background: #1a1a2e; border-radius: 12px; padding: 16px; margin-top: 16px; text-align: center; }
+  .ocr-spinner { display: inline-block; width: 30px; height: 30px; border: 3px solid #F5B041; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .parsed-items-list { margin-top: 12px; max-height: 200px; overflow-y: auto; }
+  .parsed-item { background: #2d2d44; border-radius: 10px; padding: 10px; margin-bottom: 8px; font-size: 12px; border-left: 3px solid #10b981; }
 </style>
 </head>
 <body>
@@ -114,9 +120,9 @@
         <table class="memory-table">
           <thead><tr><th>Категория</th><th>Что проверяем</th><th>Правило</th></tr></thead>
           <tbody>
-            <tr><td><span class="category-badge cat-1">Кат.1</span></td><td>Механические свойства: твёрдость, прочность на растяжение, пробная нагрузка, разрушающий момент, сопротивление срезу, дефекты материала</td><td><strong>n=1, Ac=0, Re=1</strong><br>Любой брак → вся партия брак</td></tr>
-            <tr><td><span class="category-badge cat-2">Кат.2</span></td><td>Размерные характеристики: привод и шлиц, высота, диаметр стержня, длина, диаметр резьбы, внутренний/наружный диаметр, ширина</td><td><strong>Ac=0, возможна доп. выборка</strong><br>1 брак → берём доп. выборку n → если 0 браков → OK</td></tr>
-            <tr><td><span class="category-badge cat-3">Кат.3</span></td><td>Незначительные размеры, стопорящие моменты, крутящий момент/усилие, резьбовой калибр, неразрушающий контроль</td><td><strong>Допускается Ac браков</strong><br>По таблице 1 стандарта</td></tr>
+            <tr><td><span class="category-badge cat-1">Кат.1</span></td><td>Механические свойства: твёрдость, прочность, пробная нагрузка, разрушающий момент</td><td><strong>n=1, Ac=0, Re=1</strong><br>Любой брак → вся партия брак</td></tr>
+            <tr><td><span class="category-badge cat-2">Кат.2</span></td><td>Размеры: привод, шлиц, высота, диаметр стержня, длина, диаметр резьбы</td><td><strong>Ac=0, возможна доп. выборка</strong><br>1 брак → доп.выборка n → если 0 → OK</td></tr>
+            <tr><td><span class="category-badge cat-3">Кат.3</span></td><td>Незначительные размеры, стопорящие моменты, резьбовой калибр</td><td><strong>Допускается Ac браков</strong><br>По таблице стандарта</td></tr>
           </tbody>
         </table>
       </div>
@@ -124,7 +130,7 @@
       <div style="margin-bottom: 16px;">
         <div style="font-weight: 800; color: #F5B041; margin-bottom: 8px;">📐 ПЛАН ВЫБОРКИ (по размеру партии N)</div>
         <table class="memory-table">
-          <thead><tr><th>Размер партии N</th><th>Кат.1 (n)</th><th>Кат.2 (n)</th><th>Кат.3 (n, Ac, Re)</th></tr></thead>
+          <thead><tr><th>Размер партии N</th><th>Кат.1</th><th>Кат.2</th><th>Кат.3 (n, Ac, Re)</th></tr></thead>
           <tbody>
             <tr><td>2 - 50</td><td>1</td><td>4</td><td>4, Ac=0, Re=1</td></tr>
             <tr><td>51 - 90</td><td>1</td><td>5</td><td>5, Ac=1, Re=2</td></tr>
@@ -138,13 +144,12 @@
             <tr><td>Свыше 500000</td><td>8</td><td>20</td><td>20, Ac=2, Re=3</td></tr>
           </tbody>
         </table>
-        <div class="memory-note">※ Ac — приёмочное число (допустимое кол-во брака), Re — браковочное число</div>
       </div>
 
       <div>
         <div style="font-weight: 800; color: #F5B041; margin-bottom: 8px;">🔧 КАТЕГОРИИ ПО ТИПАМ ИЗДЕЛИЙ</div>
         <table class="memory-table">
-          <thead><tr><th>Характеристика</th><th>Болты/Винты</th><th>Гайки</th><th>Шайбы</th><th>Штифты</th><th>Заклёпки</th></tr></thead>
+          <thead><tr><th>Характеристика</th><th>Болты</th><th>Гайки</th><th>Шайбы</th><th>Штифты</th><th>Заклёпки</th></tr></thead>
           <tbody>
             <tr><td>Твёрдость, прочность</td><td class="cat-1">1</td><td class="cat-1">1</td><td class="cat-1">1</td><td class="cat-1">1</td><td class="cat-1">1</td></tr>
             <tr><td>Привод, шлиц</td><td class="cat-2">2</td><td class="cat-2">2</td><td>—</td><td>—</td><td>—</td></tr>
@@ -155,7 +160,7 @@
             <tr><td>Другие размеры</td><td class="cat-3">3</td><td class="cat-3">3</td><td class="cat-3">3</td><td class="cat-3">3</td><td class="cat-3">3</td></tr>
           </tbody>
         </table>
-        <div class="memory-note">※ 1 — разрушающий контроль | 2 — размеры с доп.выборкой | 3 — общий контроль (с допуском)</div>
+        <div class="memory-note">※ 1 — разрушающий контроль | 2 — размеры с доп.выборкой | 3 — общий контроль</div>
       </div>
     </div>
   </div>
@@ -190,6 +195,16 @@
       <input id="f-date" type="date"/>
       <label>Покупатель</label>
       <input id="f-buyer" value="ООО ОПМ"/>
+    </div>
+    
+    <button class="btn btn-primary" id="btn-ocr" style="display:none; margin-bottom:12px;" onclick="startOCR()">
+      🤖 Распознать товары из фото
+    </button>
+    
+    <div id="ocr-result" style="display:none;" class="card">
+      <div class="card-title">📋 Распознанные позиции</div>
+      <div id="ocr-items-list" class="parsed-items-list"></div>
+      <button class="btn btn-outline" style="margin-top:12px;" onclick="addOcrItems()">➕ Добавить распознанные позиции</button>
     </div>
     
     <button class="btn btn-primary" id="btn-next" style="display:none;" onclick="goToDefects()">Далее →</button>
@@ -254,11 +269,12 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
 <script>
 // Состояние
 const state = {
-  items: [], supplier: '', order: '', date: '', buyer: 'ООО ОПМ'
+  items: [], supplier: '', order: '', date: '', buyer: 'ООО ОПМ', imageB64: null, ocrItems: []
 };
 
 // Типы несоответствий
@@ -307,12 +323,9 @@ const NONCONFORMITY_TYPES = {
     ] }
 };
 
-// Функция расчета выборки по ISO 3269-2021
+// Функция расчета выборки
 function getSamplingPlan(lotSize) {
-  // Категория 1: всегда n=1, Ac=0, Re=1
-  const cat1 = { n: 1, ac: 0, re: 1 };
-  
-  // Категория 2: по таблице
+  const cat1 = { n: lotSize >= 281 ? (lotSize >= 3201 ? (lotSize >= 35001 ? 5 : 3) : 2) : 1, ac: 0, re: 1 };
   let cat2 = { n: 4, ac: 0, re: 2 };
   if (lotSize >= 51 && lotSize <= 90) cat2 = { n: 5, ac: 0, re: 2 };
   else if (lotSize >= 91 && lotSize <= 150) cat2 = { n: 6, ac: 0, re: 2 };
@@ -321,10 +334,8 @@ function getSamplingPlan(lotSize) {
   else if (lotSize >= 501 && lotSize <= 1200) cat2 = { n: 11, ac: 0, re: 2 };
   else if (lotSize >= 1201 && lotSize <= 3200) cat2 = { n: 13, ac: 0, re: 2 };
   else if (lotSize >= 3201 && lotSize <= 35000) cat2 = { n: 15, ac: 0, re: 2 };
-  else if (lotSize >= 35001 && lotSize <= 500000) cat2 = { n: 20, ac: 0, re: 2 };
-  else if (lotSize > 500000) cat2 = { n: 20, ac: 0, re: 2 };
+  else if (lotSize >= 35001) cat2 = { n: 20, ac: 0, re: 2 };
   
-  // Категория 3: по таблице с Ac и Re
   let cat3 = { n: 4, ac: 0, re: 1 };
   if (lotSize >= 51 && lotSize <= 90) cat3 = { n: 5, ac: 1, re: 2 };
   else if (lotSize >= 91 && lotSize <= 150) cat3 = { n: 6, ac: 1, re: 2 };
@@ -333,8 +344,7 @@ function getSamplingPlan(lotSize) {
   else if (lotSize >= 501 && lotSize <= 1200) cat3 = { n: 11, ac: 1, re: 2 };
   else if (lotSize >= 1201 && lotSize <= 3200) cat3 = { n: 13, ac: 1, re: 2 };
   else if (lotSize >= 3201 && lotSize <= 35000) cat3 = { n: 15, ac: 2, re: 3 };
-  else if (lotSize >= 35001 && lotSize <= 500000) cat3 = { n: 20, ac: 2, re: 3 };
-  else if (lotSize > 500000) cat3 = { n: 20, ac: 2, re: 3 };
+  else if (lotSize >= 35001) cat3 = { n: 20, ac: 2, re: 3 };
   
   return { cat1, cat2, cat3 };
 }
@@ -356,17 +366,174 @@ function handleScanFile(input) {
     document.getElementById('scan-preview').src = e.target.result;
     document.getElementById('scan-preview').style.display = 'block';
     document.getElementById('meta-card').style.display = 'block';
-    document.getElementById('btn-next').style.display = 'block';
+    document.getElementById('btn-ocr').style.display = 'block';
     document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
   };
   reader.readAsDataURL(file);
 }
 
-function goToDefects() {
+// OCR распознавание через Tesseract.js
+async function startOCR() {
+  const btn = document.getElementById('btn-ocr');
+  btn.disabled = true;
+  btn.innerHTML = '⏳ Распознаю текст...';
+  showToast('Распознавание текста с фото...');
+  
+  // Показываем индикатор загрузки
+  const ocrDiv = document.getElementById('ocr-result');
+  ocrDiv.style.display = 'block';
+  ocrDiv.innerHTML = '<div class="card-title">📋 Распознавание...</div><div class="ocr-progress"><div class="ocr-spinner"></div><div class="text-muted" style="margin-top:12px;">Анализ изображения...</div></div>';
+  
+  try {
+    // Конвертируем base64 в image для Tesseract
+    const img = new Image();
+    img.src = state.imageB64;
+    await new Promise((resolve) => { img.onload = resolve; });
+    
+    // Запускаем Tesseract
+    const result = await Tesseract.recognize(img, 'rus', {
+      logger: m => console.log(m)
+    });
+    
+    const text = result.data.text;
+    console.log('OCR Text:', text);
+    
+    // Парсим текст для извлечения товаров
+    parseOcrText(text);
+    
+  } catch(e) {
+    console.error('OCR Error:', e);
+    showToast('Ошибка распознавания: ' + e.message);
+    ocrDiv.innerHTML = `<div class="card-title">📋 Ошибка</div><div class="text-muted">Не удалось распознать текст. Добавьте позиции вручную.</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '🤖 Распознать товары из фото';
+  }
+}
+
+function parseOcrText(text) {
+  const lines = text.split(/\r?\n/);
+  const items = [];
+  
+  // Регулярные выражения для поиска товаров
+  // Паттерн: число (количество) + единица измерения + наименование
+  const patterns = [
+    /(\d+)\s*(шт|штук|штуки|кг|уп|м)\s+([А-Яа-яA-Za-z0-9\s\-\/\(\)]+)/i,
+    /([А-Яа-яA-Za-z0-9\s\-\/\(\)]+?)\s+(\d+)\s*(шт|штук|штуки|кг|уп|м)/i,
+    /(\d+)[\s\.\-]+([А-Яа-яA-Za-z0-9\s\-\/\(\)]+?)\s+(\d+)\s*(шт)/i,
+    /([А-Яа-я0-9]+)\s+(\d+)\s*x\s*(\d+)\s*(шт)/i
+  ];
+  
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.length < 5) continue;
+    
+    // Ищем количество и единицу измерения
+    let qtyMatch = trimmed.match(/(\d+)\s*(шт|штук|штуки|кг|уп|м)/i);
+    if (qtyMatch) {
+      let qty = parseInt(qtyMatch[1]);
+      let unit = qtyMatch[2].toLowerCase();
+      if (unit === 'штук' || unit === 'штуки') unit = 'шт';
+      
+      // Извлекаем наименование
+      let name = '';
+      // Удаляем найденное количество и единицу
+      let namePart = trimmed.replace(qtyMatch[0], '').trim();
+      // Если в строке есть еще числа, возможно это код
+      let code = '';
+      let codeMatch = namePart.match(/^([А-Я0-9\-]+)/i);
+      if (codeMatch && codeMatch[1].length > 2 && codeMatch[1].length < 15) {
+        code = codeMatch[1];
+        namePart = namePart.replace(codeMatch[1], '').trim();
+      }
+      name = namePart.substring(0, 60);
+      
+      if (name.length > 2 && qty > 0) {
+        items.push({
+          name: name,
+          code: code,
+          qty: qty,
+          unit: unit,
+          nonconformityType: 'quality',
+          actions: [],
+          note: '',
+          photos: [],
+          status: null
+        });
+      }
+    }
+  }
+  
+  // Если ничего не нашли — пробуем другой паттерн
+  if (items.length === 0) {
+    const simplePattern = /(\d+)\s*[xх]\s*(\d+)/i;
+    for (const line of lines) {
+      const match = line.match(simplePattern);
+      if (match) {
+        items.push({
+          name: line.substring(0, 50),
+          code: '',
+          qty: parseInt(match[2]) || parseInt(match[1]),
+          unit: 'шт',
+          nonconformityType: 'quality',
+          actions: [],
+          note: '',
+          photos: [],
+          status: null
+        });
+        if (items.length >= 10) break;
+      }
+    }
+  }
+  
+  state.ocrItems = items;
+  
+  // Отображаем найденные позиции
+  const ocrDiv = document.getElementById('ocr-result');
+  const itemsListDiv = document.getElementById('ocr-items-list');
+  
+  if (items.length === 0) {
+    ocrDiv.innerHTML = `
+      <div class="card-title">📋 Распознанные позиции</div>
+      <div class="text-muted" style="padding: 20px; text-align: center;">⚠️ Не удалось распознать товары.<br>Добавьте позиции вручную.</div>
+      <button class="btn btn-outline" style="margin-top:12px;" onclick="goToDefectsManual()">➕ Добавить вручную</button>
+    `;
+  } else {
+    itemsListDiv.innerHTML = items.map((item, idx) => `
+      <div class="parsed-item">
+        <div style="font-weight:600;">${item.name}</div>
+        <div style="font-size:11px; color:#B0B7D0;">${item.code ? 'Код: ' + item.code + ' · ' : ''}${item.qty} ${item.unit}</div>
+      </div>
+    `).join('');
+    ocrDiv.innerHTML = `
+      <div class="card-title">📋 Распознанные позиции (${items.length})</div>
+      <div id="ocr-items-list" class="parsed-items-list">${itemsListDiv.innerHTML}</div>
+      <button class="btn btn-outline" style="margin-top:12px;" onclick="addOcrItems()">➕ Добавить все позиции</button>
+      <button class="btn btn-outline" style="margin-top:8px;" onclick="goToDefectsManual()">✏️ Добавить вручную</button>
+    `;
+    showToast(`Распознано ${items.length} позиций`);
+  }
+}
+
+function addOcrItems() {
+  const nextId = state.items.length;
+  state.ocrItems.forEach((item, idx) => {
+    state.items.push({
+      id: nextId + idx,
+      ...item
+    });
+  });
+  state.ocrItems = [];
+  showToast(`Добавлено ${state.ocrItems.length} позиций`);
+  goToDefectsManual();
+}
+
+function goToDefectsManual() {
   state.supplier = document.getElementById('f-supplier').value;
   state.order = document.getElementById('f-order').value;
   state.date = document.getElementById('f-date').value;
   state.buyer = document.getElementById('f-buyer').value;
+  
   if (!state.items.length) {
     state.items = [{id:0, name:'', code:'', qty:0, unit:'шт', nonconformityType:'quality', actions:[], note:'', photos:[], status:null}];
   }
@@ -403,16 +570,16 @@ function renderItems() {
       <button class="delete-item" onclick="deleteItem(${idx})">✕</button>
       <div class="ci-header">
         <span class="ci-num">${idx+1}</span>
-        <input style="flex:1;background:#1a1a2e;border:1px solid rgba(245,176,65,0.3);border-radius:10px;padding:10px;color:#fff;" value="${escapeHtml(item.name)}" placeholder="Наименование" oninput="state.items[${idx}].name=this.value">
+        <input style="flex:1;background:#1a1a2e;border:1px solid rgba(245,176,65,0.3);border-radius:10px;padding:10px;color:#fff;" value="${escapeHtml(item.name)}" placeholder="Наименование товара" oninput="state.items[${idx}].name=this.value">
         <div class="ci-status">
           <button class="status-btn ok ${item.status==='ok'?'active':''}" onclick="setStatus(${idx},'ok')">✓ OK</button>
           <button class="status-btn fail ${item.status==='fail'?'active':''}" onclick="setStatus(${idx},'fail')">✗ Брак</button>
         </div>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:12px;">
-        <div style="flex:1"><input value="${escapeHtml(item.code)}" placeholder="Код" style="margin:0;" oninput="state.items[${idx}].code=this.value"></div>
-        <div style="flex:1"><input type="number" value="${item.qty||0}" placeholder="Кол-во" style="margin:0;" oninput="state.items[${idx}].qty=+this.value;renderISO()"></div>
-        <div style="flex:0.5"><select style="margin:0;" onchange="state.items[${idx}].unit=this.value">${['шт','кг','уп','м'].map(u=>`<option ${item.unit===u?'selected':''}>${u}</option>`).join('')}</select></div>
+        <div style="flex:1"><input value="${escapeHtml(item.code)}" placeholder="Код товара" style="margin:0;" oninput="state.items[${idx}].code=this.value"></div>
+        <div style="flex:0.7"><input type="number" value="${item.qty||0}" placeholder="Кол-во" style="margin:0;" oninput="state.items[${idx}].qty=+this.value;renderISO()"></div>
+        <div style="flex:0.3"><select style="margin:0;" onchange="state.items[${idx}].unit=this.value">${['шт','кг','уп','м'].map(u=>`<option ${item.unit===u?'selected':''}>${u}</option>`).join('')}</select></div>
       </div>
       <div><select onchange="state.items[${idx}].nonconformityType=this.value;renderItems()">
         ${Object.entries(NONCONFORMITY_TYPES).map(([key,cat])=>`<option value="${key}" ${item.nonconformityType===key?'selected':''}>${cat.label}</option>`).join('')}
@@ -434,7 +601,7 @@ function renderItems() {
   const addBtn = document.createElement('button');
   addBtn.className = 'btn btn-outline';
   addBtn.style.marginTop = '12px';
-  addBtn.innerHTML = '+ Добавить позицию';
+  addBtn.innerHTML = '+ Добавить позицию вручную';
   addBtn.onclick = () => { 
     state.items.push({id:state.items.length, name:'', code:'', qty:0, unit:'шт', nonconformityType:'quality', actions:[], note:'', photos:[], status:null}); 
     renderItems(); 
