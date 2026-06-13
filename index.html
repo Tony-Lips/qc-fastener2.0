@@ -4,8 +4,11 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
 <meta name="theme-color" content="#1a1a2e"/>
-<title>ОПМ — Контроль качества крепежа по ISO 3269-2021</title>
+<title>ОПМ — Контроль качества крепежа</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: 'Inter', sans-serif; background: #1a1a2e; color: #fff; }
@@ -48,10 +51,6 @@
   .defect-section { display: none; margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(245,176,65,0.2); }
   .defect-section.show { display: block; }
   
-  .action-grid { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; }
-  .action-check { display: flex; align-items: center; gap: 8px; background: #1a1a2e; padding: 10px 14px; border-radius: 12px; font-size: 12px; cursor: pointer; }
-  .action-check input { width: 16px; margin: 0; }
-  
   .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
   .photo-thumb { aspect-ratio: 1; border-radius: 12px; overflow: hidden; position: relative; background: #1a1a2e; border: 1px solid #F5B041; }
   .photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
@@ -86,9 +85,8 @@
   .memory-table th { background: #1a1a2e; color: #F5B041; }
   .memory-note { font-size: 10px; color: #B0B7D0; margin-top: 8px; }
   
-  .sampling-card { background: #1a1a2e; border-radius: 12px; padding: 12px; margin-top: 12px; }
   .sampling-grid { display: flex; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
-  .sampling-item { flex: 1; background: #2d2d44; border-radius: 12px; padding: 10px; text-align: center; }
+  .sampling-item { flex: 1; background: #1a1a2e; border-radius: 12px; padding: 10px; text-align: center; }
   .sampling-n { font-size: 28px; font-weight: 800; color: #F5B041; }
   
   .ocr-progress { background: #1a1a2e; border-radius: 12px; padding: 16px; margin-top: 16px; text-align: center; }
@@ -111,53 +109,29 @@
     <button class="btn btn-primary" onclick="goTo('screen-scan')">📷 Сканировать акт контроля</button>
     <button class="btn btn-outline" onclick="goTo('screen-history')" style="margin-top: 12px;">📋 История актов</button>
     
-    <!-- ПАМЯТКА ДЛЯ ПРИЕМКИ ТОВАРА -->
     <div class="card" style="margin-top: 20px;">
       <div class="card-title">📖 ПАМЯТКА ДЛЯ ПРИЕМКИ ТОВАРА (ISO 3269-2021)</div>
-      
       <div style="margin-bottom: 16px;">
         <div style="font-weight: 800; color: #F5B041; margin-bottom: 8px;">🏷️ КАТЕГОРИИ КОНТРОЛЯ</div>
         <table class="memory-table">
           <thead><tr><th>Категория</th><th>Что проверяем</th><th>Правило</th></tr></thead>
           <tbody>
-            <tr><td><span class="category-badge cat-1">Кат.1</span></td><td>Механические свойства: твёрдость, прочность, пробная нагрузка, разрушающий момент</td><td><strong>n=1, Ac=0, Re=1</strong><br>Любой брак → вся партия брак</td></tr>
-            <tr><td><span class="category-badge cat-2">Кат.2</span></td><td>Размеры: привод, шлиц, высота, диаметр стержня, длина, диаметр резьбы</td><td><strong>Ac=0, возможна доп. выборка</strong><br>1 брак → доп.выборка n → если 0 → OK</td></tr>
-            <tr><td><span class="category-badge cat-3">Кат.3</span></td><td>Незначительные размеры, стопорящие моменты, резьбовой калибр</td><td><strong>Допускается Ac браков</strong><br>По таблице стандарта</td></tr>
+            <tr><td><span class="category-badge cat-1">Кат.1</span></td><td>Механические свойства: твёрдость, прочность</td><td><strong>n=1, Ac=0, Re=1</strong><br>Любой брак → вся партия брак</td></tr>
+            <tr><td><span class="category-badge cat-2">Кат.2</span></td><td>Размеры: диаметр, длина, высота, резьба</td><td><strong>Ac=0, возможна доп. выборка</strong><br>1 брак → доп.выборка n → если 0 → OK</td></tr>
+            <tr><td><span class="category-badge cat-3">Кат.3</span></td><td>Незначительные размеры, стопорящие моменты</td><td><strong>Допускается Ac браков</strong><br>По таблице стандарта</td></tr>
           </tbody>
         </table>
       </div>
-
-      <div style="margin-bottom: 16px;">
-        <div style="font-weight: 800; color: #F5B041; margin-bottom: 8px;">📐 ПЛАН ВЫБОРКИ (по размеру партии N)</div>
-        <table class="memory-table">
-          <thead><tr><th>Размер партии N</th><th>Кат.1</th><th>Кат.2</th><th>Кат.3 (n, Ac, Re)</th></tr></thead>
-          <tbody>
-            <tr><td>2 - 50</td><td>1</td><td>4</td><td>4, Ac=0, Re=1</td></tr>
-            <tr><td>51 - 90</td><td>1</td><td>5</td><td>5, Ac=1, Re=2</td></tr>
-            <tr><td>91 - 150</td><td>1</td><td>6</td><td>6, Ac=1, Re=2</td></tr>
-            <tr><td>151 - 280</td><td>1</td><td>7</td><td>7, Ac=1, Re=2</td></tr>
-            <tr><td>281 - 500</td><td>2</td><td>9</td><td>9, Ac=1, Re=2</td></tr>
-            <tr><td>501 - 1200</td><td>2</td><td>11</td><td>11, Ac=1, Re=2</td></tr>
-            <tr><td>1201 - 3200</td><td>2</td><td>13</td><td>13, Ac=1, Re=2</td></tr>
-            <tr><td>3201 - 35000</td><td>3</td><td>15</td><td>15, Ac=2, Re=3</td></tr>
-            <tr><td>35001 - 500000</td><td>5</td><td>20</td><td>20, Ac=2, Re=3</td></tr>
-            <tr><td>Свыше 500000</td><td>8</td><td>20</td><td>20, Ac=2, Re=3</td></tr>
-          </tbody>
-        </table>
-      </div>
-
       <div>
         <div style="font-weight: 800; color: #F5B041; margin-bottom: 8px;">🔧 КАТЕГОРИИ ПО ТИПАМ ИЗДЕЛИЙ</div>
         <table class="memory-table">
-          <thead><tr><th>Характеристика</th><th>Болты</th><th>Гайки</th><th>Шайбы</th><th>Штифты</th><th>Заклёпки</th></tr></thead>
+          <thead><tr><th>Характеристика</th><th>Болты</th><th>Гайки</th><th>Шайбы</th></tr></thead>
           <tbody>
-            <tr><td>Твёрдость, прочность</td><td class="cat-1">1</td><td class="cat-1">1</td><td class="cat-1">1</td><td class="cat-1">1</td><td class="cat-1">1</td></tr>
-            <tr><td>Привод, шлиц</td><td class="cat-2">2</td><td class="cat-2">2</td><td>—</td><td>—</td><td>—</td></tr>
-            <tr><td>Высота, длина</td><td class="cat-2">2</td><td class="cat-2">2</td><td class="cat-2">2</td><td class="cat-2">2</td><td class="cat-2">2</td></tr>
-            <tr><td>Диаметр резьбы</td><td class="cat-2">2</td><td class="cat-2">2</td><td>—</td><td>—</td><td>—</td></tr>
-            <tr><td>Резьбовой калибр</td><td class="cat-3">3</td><td class="cat-3">3</td><td>—</td><td>—</td><td>—</td></tr>
-            <tr><td>Стопорящие моменты</td><td class="cat-3">3</td><td class="cat-3">3</td><td>—</td><td>—</td><td>—</td></tr>
-            <tr><td>Другие размеры</td><td class="cat-3">3</td><td class="cat-3">3</td><td class="cat-3">3</td><td class="cat-3">3</td><td class="cat-3">3</td></tr>
+            <tr><td>Твёрдость, прочность</td><td class="cat-1">1</td><td class="cat-1">1</td><td class="cat-1">1</td></tr>
+            <tr><td>Высота, длина</td><td class="cat-2">2</td><td class="cat-2">2</td><td class="cat-2">2</td></tr>
+            <tr><td>Диаметр резьбы</td><td class="cat-2">2</td><td class="cat-2">2</td><td>—</td></tr>
+            <tr><td>Резьбовой калибр</td><td class="cat-3">3</td><td class="cat-3">3</td><td>—</td></tr>
+            <tr><td>Другие размеры</td><td class="cat-3">3</td><td class="cat-3">3</td><td class="cat-3">3</td></tr>
           </tbody>
         </table>
         <div class="memory-note">※ 1 — разрушающий контроль | 2 — размеры с доп.выборкой | 3 — общий контроль</div>
@@ -188,13 +162,15 @@
     <div class="card" id="meta-card" style="display:none;">
       <div class="card-title">Реквизиты поставки</div>
       <label>Поставщик</label>
-      <input id="f-supplier" placeholder="ООО КРЕП-КОМП"/>
-      <label>Номер заказа / счета</label>
-      <input id="f-order" placeholder="УТФ00002960"/>
+      <input id="f-supplier" placeholder="ООО Поставщик"/>
+      <label>Номер договора/счета</label>
+      <input id="f-order" placeholder="Договор № 123 от 01.01.2025"/>
+      <label>Номер счет-фактуры/УПД</label>
+      <input id="f-invoice" placeholder="№ 121567 от 01.01.2025"/>
       <label>Дата поставки</label>
       <input id="f-date" type="date"/>
       <label>Покупатель</label>
-      <input id="f-buyer" value="ООО ОПМ"/>
+      <input id="f-buyer" value="ООО «ОПМ»"/>
     </div>
     
     <button class="btn btn-primary" id="btn-ocr" style="display:none; margin-bottom:12px;" onclick="startOCR()">
@@ -204,7 +180,7 @@
     <div id="ocr-result" style="display:none;" class="card">
       <div class="card-title">📋 Распознанные позиции</div>
       <div id="ocr-items-list" class="parsed-items-list"></div>
-      <button class="btn btn-outline" style="margin-top:12px;" onclick="addOcrItems()">➕ Добавить распознанные позиции</button>
+      <button class="btn btn-outline" style="margin-top:12px;" onclick="addOcrItems()">➕ Добавить все позиции</button>
     </div>
     
     <button class="btn btn-primary" id="btn-next" style="display:none;" onclick="goToDefects()">Далее →</button>
@@ -247,11 +223,27 @@
     <div id="report-items-preview"></div>
     
     <div class="card">
+      <div class="card-title">Заключение комиссии (выберите тип несоответствия)</div>
+      <div id="conclusion-checks" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
+        <label><input type="checkbox" id="check-shortage"> Недопоставка Товара</label>
+        <label><input type="checkbox" id="check-surplus"> Излишки Товара</label>
+        <label><input type="checkbox" id="check-assortment"> Нарушение ассортимента</label>
+        <label><input type="checkbox" id="check-quality"> Товар ненадлежащего качества</label>
+        <label><input type="checkbox" id="check-incomplete"> Некомплектный Товар</label>
+        <label><input type="checkbox" id="check-packaging"> Нарушение упаковки</label>
+        <label><input type="checkbox" id="check-documentation"> Отсутствие документации</label>
+        <label><input type="checkbox" id="check-other"> Иное</label>
+      </div>
+      <input id="other-text" placeholder="Если Иное, укажите:" style="display:none; margin-top:8px;">
+    </div>
+    
+    <div class="card">
       <div class="card-title">Комиссия</div>
-      <label>Начальник склада</label><input id="c-head" placeholder="Морозов А.Л."/>
-      <label>Руководитель ОТК</label><input id="c-otk" value="Губанов А.В."/>
-      <label>Специалист по претензиям</label><input id="c-claim" value="Гарина Н.В., Дувина С.В."/>
-      <label>Номер акта</label><input id="act-num" placeholder="авто"/>
+      <label>Начальник склада</label><input id="c-head" placeholder="______________________" value="Морозов А.Л."/>
+      <label>Руководитель ОТК</label><input id="c-otk" placeholder="______________________" value="Губанов А.В."/>
+      <label>Специалист по претензиям</label><input id="c-claim" placeholder="______________________" value="Гарина Н.В., Дувина С.В."/>
+      <label>Номер акта</label><input id="act-num" placeholder="1234"/>
+      <label>Место составления</label><input id="act-place" value="194292, Санкт-Петербург г, 5-й Верхний пер, дом № 17 литера А, оф.211,212"/>
     </div>
     
     <button class="btn btn-primary" onclick="generateDocx()">⬇️ Скачать DOCX</button>
@@ -267,87 +259,11 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-
 <script>
 // Состояние
 const state = {
-  items: [], supplier: '', order: '', date: '', buyer: 'ООО ОПМ', imageB64: null, ocrItems: []
+  items: [], supplier: '', order: '', invoice: '', date: '', buyer: 'ООО «ОПМ»', place: '', imageB64: null, ocrItems: []
 };
-
-// Типы несоответствий
-const NONCONFORMITY_TYPES = {
-  shortage: { label: 'Недопоставка', article: 'ст. 466 ГК РФ',
-    actions: [
-      {code:'demand_delivery',text:'Потребовать передать недостающее количество'},
-      {code:'return_goods',text:'Произвести возврат товара'},
-      {code:'refund_money',text:'Потребовать возврата уплаченной суммы'}
-    ] },
-  surplus: { label: 'Излишки', article: 'ст. 466, 468 ГК РФ',
-    actions: [
-      {code:'accept_pay',text:'Принять и оплатить товар'},
-      {code:'refuse_export',text:'Отказаться и потребовать вывоз'}
-    ] },
-  assortment: { label: 'Пересорт', article: 'ст. 468 ГК РФ',
-    actions: [
-      {code:'accept_all',text:'Принять весь товар'},
-      {code:'refuse_nonconforming',text:'Отказаться от несоответствующего'},
-      {code:'demand_replace',text:'Потребовать замену'},
-      {code:'refuse_all',text:'Отказаться от всего товара'}
-    ] },
-  quality: { label: 'Брак (качество)', article: 'ст. 475 ГК РФ',
-    actions: [
-      {code:'demand_replacement',text:'Потребовать замену товара'},
-      {code:'demand_repair',text:'Потребовать устранения недостатков'},
-      {code:'demand_price_reduction',text:'Потребовать уменьшения цены'},
-      {code:'refund_contract',text:'Отказаться от договора'}
-    ] },
-  incomplete: { label: 'Некомплект', article: 'ст. 480 ГК РФ',
-    actions: [
-      {code:'demand_completion',text:'Потребовать доукомплектовать'},
-      {code:'demand_replacement',text:'Потребовать замены'},
-      {code:'refund_contract',text:'Отказаться от договора'}
-    ] },
-  packaging: { label: 'Упаковка', article: 'ст. 482, 475 ГК РФ',
-    actions: [
-      {code:'demand_packaging',text:'Потребовать упаковку'},
-      {code:'demand_replacement',text:'Потребовать замену товара'},
-      {code:'refund_contract',text:'Отказаться от договора'}
-    ] },
-  documentation: { label: 'Документация', article: 'ст. 464 ГК РФ',
-    actions: [
-      {code:'demand_docs',text:'Потребовать документы'},
-      {code:'refund_contract',text:'Отказаться от договора'}
-    ] }
-};
-
-// Функция расчета выборки
-function getSamplingPlan(lotSize) {
-  const cat1 = { n: lotSize >= 281 ? (lotSize >= 3201 ? (lotSize >= 35001 ? 5 : 3) : 2) : 1, ac: 0, re: 1 };
-  let cat2 = { n: 4, ac: 0, re: 2 };
-  if (lotSize >= 51 && lotSize <= 90) cat2 = { n: 5, ac: 0, re: 2 };
-  else if (lotSize >= 91 && lotSize <= 150) cat2 = { n: 6, ac: 0, re: 2 };
-  else if (lotSize >= 151 && lotSize <= 280) cat2 = { n: 7, ac: 0, re: 2 };
-  else if (lotSize >= 281 && lotSize <= 500) cat2 = { n: 9, ac: 0, re: 2 };
-  else if (lotSize >= 501 && lotSize <= 1200) cat2 = { n: 11, ac: 0, re: 2 };
-  else if (lotSize >= 1201 && lotSize <= 3200) cat2 = { n: 13, ac: 0, re: 2 };
-  else if (lotSize >= 3201 && lotSize <= 35000) cat2 = { n: 15, ac: 0, re: 2 };
-  else if (lotSize >= 35001) cat2 = { n: 20, ac: 0, re: 2 };
-  
-  let cat3 = { n: 4, ac: 0, re: 1 };
-  if (lotSize >= 51 && lotSize <= 90) cat3 = { n: 5, ac: 1, re: 2 };
-  else if (lotSize >= 91 && lotSize <= 150) cat3 = { n: 6, ac: 1, re: 2 };
-  else if (lotSize >= 151 && lotSize <= 280) cat3 = { n: 7, ac: 1, re: 2 };
-  else if (lotSize >= 281 && lotSize <= 500) cat3 = { n: 9, ac: 1, re: 2 };
-  else if (lotSize >= 501 && lotSize <= 1200) cat3 = { n: 11, ac: 1, re: 2 };
-  else if (lotSize >= 1201 && lotSize <= 3200) cat3 = { n: 13, ac: 1, re: 2 };
-  else if (lotSize >= 3201 && lotSize <= 35000) cat3 = { n: 15, ac: 2, re: 3 };
-  else if (lotSize >= 35001) cat3 = { n: 20, ac: 2, re: 3 };
-  
-  return { cat1, cat2, cat3 };
-}
 
 // Навигация
 function goTo(id) {
@@ -372,38 +288,31 @@ function handleScanFile(input) {
   reader.readAsDataURL(file);
 }
 
-// OCR распознавание через Tesseract.js
+// OCR распознавание
 async function startOCR() {
   const btn = document.getElementById('btn-ocr');
   btn.disabled = true;
   btn.innerHTML = '⏳ Распознаю текст...';
   showToast('Распознавание текста с фото...');
   
-  // Показываем индикатор загрузки
   const ocrDiv = document.getElementById('ocr-result');
   ocrDiv.style.display = 'block';
   ocrDiv.innerHTML = '<div class="card-title">📋 Распознавание...</div><div class="ocr-progress"><div class="ocr-spinner"></div><div class="text-muted" style="margin-top:12px;">Анализ изображения...</div></div>';
   
   try {
-    // Конвертируем base64 в image для Tesseract
     const img = new Image();
     img.src = state.imageB64;
     await new Promise((resolve) => { img.onload = resolve; });
     
-    // Запускаем Tesseract
-    const result = await Tesseract.recognize(img, 'rus', {
-      logger: m => console.log(m)
-    });
-    
+    const result = await Tesseract.recognize(img, 'rus', { logger: m => console.log(m) });
     const text = result.data.text;
     console.log('OCR Text:', text);
     
-    // Парсим текст для извлечения товаров
     parseOcrText(text);
     
   } catch(e) {
     console.error('OCR Error:', e);
-    showToast('Ошибка распознавания: ' + e.message);
+    showToast('Ошибка распознавания');
     ocrDiv.innerHTML = `<div class="card-title">📋 Ошибка</div><div class="text-muted">Не удалось распознать текст. Добавьте позиции вручную.</div>`;
   } finally {
     btn.disabled = false;
@@ -415,114 +324,47 @@ function parseOcrText(text) {
   const lines = text.split(/\r?\n/);
   const items = [];
   
-  // Регулярные выражения для поиска товаров
-  // Паттерн: число (количество) + единица измерения + наименование
-  const patterns = [
-    /(\d+)\s*(шт|штук|штуки|кг|уп|м)\s+([А-Яа-яA-Za-z0-9\s\-\/\(\)]+)/i,
-    /([А-Яа-яA-Za-z0-9\s\-\/\(\)]+?)\s+(\d+)\s*(шт|штук|штуки|кг|уп|м)/i,
-    /(\d+)[\s\.\-]+([А-Яа-яA-Za-z0-9\s\-\/\(\)]+?)\s+(\d+)\s*(шт)/i,
-    /([А-Яа-я0-9]+)\s+(\d+)\s*x\s*(\d+)\s*(шт)/i
-  ];
-  
   for (const line of lines) {
     const trimmed = line.trim();
     if (trimmed.length < 5) continue;
     
-    // Ищем количество и единицу измерения
     let qtyMatch = trimmed.match(/(\d+)\s*(шт|штук|штуки|кг|уп|м)/i);
     if (qtyMatch) {
       let qty = parseInt(qtyMatch[1]);
       let unit = qtyMatch[2].toLowerCase();
       if (unit === 'штук' || unit === 'штуки') unit = 'шт';
       
-      // Извлекаем наименование
-      let name = '';
-      // Удаляем найденное количество и единицу
-      let namePart = trimmed.replace(qtyMatch[0], '').trim();
-      // Если в строке есть еще числа, возможно это код
+      let name = trimmed.replace(qtyMatch[0], '').trim();
       let code = '';
-      let codeMatch = namePart.match(/^([А-Я0-9\-]+)/i);
-      if (codeMatch && codeMatch[1].length > 2 && codeMatch[1].length < 15) {
+      let codeMatch = name.match(/^([А-Я0-9\-]{3,15})/i);
+      if (codeMatch) {
         code = codeMatch[1];
-        namePart = namePart.replace(codeMatch[1], '').trim();
+        name = name.replace(codeMatch[1], '').trim();
       }
-      name = namePart.substring(0, 60);
+      name = name.substring(0, 50);
       
       if (name.length > 2 && qty > 0) {
-        items.push({
-          name: name,
-          code: code,
-          qty: qty,
-          unit: unit,
-          nonconformityType: 'quality',
-          actions: [],
-          note: '',
-          photos: [],
-          status: null
-        });
-      }
-    }
-  }
-  
-  // Если ничего не нашли — пробуем другой паттерн
-  if (items.length === 0) {
-    const simplePattern = /(\d+)\s*[xх]\s*(\d+)/i;
-    for (const line of lines) {
-      const match = line.match(simplePattern);
-      if (match) {
-        items.push({
-          name: line.substring(0, 50),
-          code: '',
-          qty: parseInt(match[2]) || parseInt(match[1]),
-          unit: 'шт',
-          nonconformityType: 'quality',
-          actions: [],
-          note: '',
-          photos: [],
-          status: null
-        });
-        if (items.length >= 10) break;
+        items.push({ name: name, code: code, qty: qty, unit: unit, nonconformityType: 'quality', actions: [], note: '', photos: [], status: null });
       }
     }
   }
   
   state.ocrItems = items;
-  
-  // Отображаем найденные позиции
-  const ocrDiv = document.getElementById('ocr-result');
   const itemsListDiv = document.getElementById('ocr-items-list');
+  const ocrDiv = document.getElementById('ocr-result');
   
   if (items.length === 0) {
-    ocrDiv.innerHTML = `
-      <div class="card-title">📋 Распознанные позиции</div>
-      <div class="text-muted" style="padding: 20px; text-align: center;">⚠️ Не удалось распознать товары.<br>Добавьте позиции вручную.</div>
-      <button class="btn btn-outline" style="margin-top:12px;" onclick="goToDefectsManual()">➕ Добавить вручную</button>
-    `;
+    ocrDiv.innerHTML = `<div class="card-title">📋 Распознанные позиции</div><div class="text-muted" style="padding:20px;text-align:center;">⚠️ Не удалось распознать товары.<br>Добавьте позиции вручную.</div><button class="btn btn-outline" style="margin-top:12px;" onclick="goToDefectsManual()">➕ Добавить вручную</button>`;
   } else {
-    itemsListDiv.innerHTML = items.map((item, idx) => `
-      <div class="parsed-item">
-        <div style="font-weight:600;">${item.name}</div>
-        <div style="font-size:11px; color:#B0B7D0;">${item.code ? 'Код: ' + item.code + ' · ' : ''}${item.qty} ${item.unit}</div>
-      </div>
-    `).join('');
-    ocrDiv.innerHTML = `
-      <div class="card-title">📋 Распознанные позиции (${items.length})</div>
-      <div id="ocr-items-list" class="parsed-items-list">${itemsListDiv.innerHTML}</div>
-      <button class="btn btn-outline" style="margin-top:12px;" onclick="addOcrItems()">➕ Добавить все позиции</button>
-      <button class="btn btn-outline" style="margin-top:8px;" onclick="goToDefectsManual()">✏️ Добавить вручную</button>
-    `;
+    itemsListDiv.innerHTML = items.map(item => `<div class="parsed-item"><div style="font-weight:600;">${item.name}</div><div style="font-size:11px;">${item.code ? 'Код: ' + item.code + ' · ' : ''}${item.qty} ${item.unit}</div></div>`).join('');
+    ocrDiv.innerHTML = `<div class="card-title">📋 Распознанные позиции (${items.length})</div><div id="ocr-items-list" class="parsed-items-list">${itemsListDiv.innerHTML}</div><button class="btn btn-outline" style="margin-top:12px;" onclick="addOcrItems()">➕ Добавить все позиции</button><button class="btn btn-outline" style="margin-top:8px;" onclick="goToDefectsManual()">✏️ Добавить вручную</button>`;
     showToast(`Распознано ${items.length} позиций`);
   }
 }
 
 function addOcrItems() {
   const nextId = state.items.length;
-  state.ocrItems.forEach((item, idx) => {
-    state.items.push({
-      id: nextId + idx,
-      ...item
-    });
-  });
+  state.ocrItems.forEach((item, idx) => { state.items.push({ id: nextId + idx, ...item }); });
   state.ocrItems = [];
   showToast(`Добавлено ${state.ocrItems.length} позиций`);
   goToDefectsManual();
@@ -531,8 +373,10 @@ function addOcrItems() {
 function goToDefectsManual() {
   state.supplier = document.getElementById('f-supplier').value;
   state.order = document.getElementById('f-order').value;
+  state.invoice = document.getElementById('f-invoice').value;
   state.date = document.getElementById('f-date').value;
   state.buyer = document.getElementById('f-buyer').value;
+  state.place = document.getElementById('act-place')?.value || '';
   
   if (!state.items.length) {
     state.items = [{id:0, name:'', code:'', qty:0, unit:'шт', nonconformityType:'quality', actions:[], note:'', photos:[], status:null}];
@@ -544,52 +388,34 @@ function goToDefectsManual() {
 
 function renderISO() {
   const total = state.items.reduce((s,it) => s + (Number(it.qty)||0), 0);
-  if (!total) { 
-    document.getElementById('iso-card').style.display = 'none'; 
-    return; 
-  }
+  if (!total) { document.getElementById('iso-card').style.display = 'none'; return; }
   document.getElementById('iso-card').style.display = 'block';
-  const plans = getSamplingPlan(total);
-  document.getElementById('iso-info').innerHTML = `
-    <div class="stat-row"><span>Объём партии (N)</span><span class="val" style="color:#F5B041;font-size:20px;">${total.toLocaleString('ru')} шт.</span></div>
-    <div class="sampling-grid">
-      <div class="sampling-item"><span class="category-badge cat-1">Кат.1</span><div class="sampling-n">${plans.cat1.n}</div><div>Ac=${plans.cat1.ac} Re=${plans.cat1.re}</div><div class="text-muted">разрушающий</div></div>
-      <div class="sampling-item"><span class="category-badge cat-2">Кат.2</span><div class="sampling-n">${plans.cat2.n}</div><div>Ac=${plans.cat2.ac} Re=${plans.cat2.re}</div><div class="text-muted">размеры</div></div>
-      <div class="sampling-item"><span class="category-badge cat-3">Кат.3</span><div class="sampling-n">${plans.cat3.n}</div><div>Ac=${plans.cat3.ac} Re=${plans.cat3.re}</div><div class="text-muted">общий</div></div>
-    </div>`;
+  document.getElementById('iso-info').innerHTML = `<div class="stat-row"><span>Объём партии (N)</span><span style="color:#F5B041;font-size:20px;">${total.toLocaleString('ru')} шт.</span></div>`;
 }
 
 function renderItems() {
   const list = document.getElementById('items-list');
   list.innerHTML = '';
   state.items.forEach((item, idx) => {
-    const nc = NONCONFORMITY_TYPES[item.nonconformityType] || NONCONFORMITY_TYPES.quality;
     const div = document.createElement('div');
     div.className = 'checklist-item';
     div.innerHTML = `
       <button class="delete-item" onclick="deleteItem(${idx})">✕</button>
       <div class="ci-header">
         <span class="ci-num">${idx+1}</span>
-        <input style="flex:1;background:#1a1a2e;border:1px solid rgba(245,176,65,0.3);border-radius:10px;padding:10px;color:#fff;" value="${escapeHtml(item.name)}" placeholder="Наименование товара" oninput="state.items[${idx}].name=this.value">
+        <input style="flex:1;background:#1a1a2e;border:1px solid rgba(245,176,65,0.3);border-radius:10px;padding:10px;" value="${escapeHtml(item.name)}" placeholder="Наименование товара" oninput="state.items[${idx}].name=this.value">
         <div class="ci-status">
           <button class="status-btn ok ${item.status==='ok'?'active':''}" onclick="setStatus(${idx},'ok')">✓ OK</button>
           <button class="status-btn fail ${item.status==='fail'?'active':''}" onclick="setStatus(${idx},'fail')">✗ Брак</button>
         </div>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:12px;">
-        <div style="flex:1"><input value="${escapeHtml(item.code)}" placeholder="Код товара" style="margin:0;" oninput="state.items[${idx}].code=this.value"></div>
-        <div style="flex:0.7"><input type="number" value="${item.qty||0}" placeholder="Кол-во" style="margin:0;" oninput="state.items[${idx}].qty=+this.value;renderISO()"></div>
-        <div style="flex:0.3"><select style="margin:0;" onchange="state.items[${idx}].unit=this.value">${['шт','кг','уп','м'].map(u=>`<option ${item.unit===u?'selected':''}>${u}</option>`).join('')}</select></div>
+        <div style="flex:1"><input value="${escapeHtml(item.code)}" placeholder="Код товара" oninput="state.items[${idx}].code=this.value"></div>
+        <div style="flex:0.7"><input type="number" value="${item.qty||0}" placeholder="Кол-во" oninput="state.items[${idx}].qty=+this.value;renderISO()"></div>
+        <div style="flex:0.3"><select onchange="state.items[${idx}].unit=this.value">${['шт','кг','уп','м'].map(u=>`<option ${item.unit===u?'selected':''}>${u}</option>`).join('')}</select></div>
       </div>
-      <div><select onchange="state.items[${idx}].nonconformityType=this.value;renderItems()">
-        ${Object.entries(NONCONFORMITY_TYPES).map(([key,cat])=>`<option value="${key}" ${item.nonconformityType===key?'selected':''}>${cat.label}</option>`).join('')}
-      </select></div>
       <div class="defect-section ${item.status==='fail'?'show':''}">
-        <div class="card-title" style="margin-top:8px;">Действия по матрице</div>
-        <div class="action-grid">
-          ${nc.actions.map(a => `<label class="action-check"><input type="checkbox" ${item.actions.includes(a.code)?'checked':''} onchange="toggleAction(${idx},'${a.code}',this)"> ${a.text}</label>`).join('')}
-        </div>
-        <textarea placeholder="Примечание (описание дефекта)" oninput="state.items[${idx}].note=this.value">${escapeHtml(item.note)}</textarea>
+        <textarea placeholder="Описание выявленного несоответствия" oninput="state.items[${idx}].note=this.value">${escapeHtml(item.note)}</textarea>
         <div class="photo-grid" id="photos-${idx}">
           ${(item.photos||[]).map((p,pi)=>`<div class="photo-thumb"><img src="${p}"><button class="photo-del" onclick="removePhoto(${idx},${pi})">✕</button></div>`).join('')}
           <div class="photo-add"><input type="file" accept="image/*" capture="environment" onchange="addPhoto(${idx},this)"><span>📷</span><span>Добавить</span></div>
@@ -602,77 +428,40 @@ function renderItems() {
   addBtn.className = 'btn btn-outline';
   addBtn.style.marginTop = '12px';
   addBtn.innerHTML = '+ Добавить позицию вручную';
-  addBtn.onclick = () => { 
-    state.items.push({id:state.items.length, name:'', code:'', qty:0, unit:'шт', nonconformityType:'quality', actions:[], note:'', photos:[], status:null}); 
-    renderItems(); 
-  };
+  addBtn.onclick = () => { state.items.push({id:state.items.length, name:'', code:'', qty:0, unit:'шт', nonconformityType:'quality', actions:[], note:'', photos:[], status:null}); renderItems(); };
   list.appendChild(addBtn);
 }
 
-function setStatus(idx, status) { 
-  state.items[idx].status = status; 
-  renderItems(); 
-}
-
-function toggleAction(idx, code, chk) { 
-  if (chk.checked) {
-    if (!state.items[idx].actions.includes(code)) state.items[idx].actions.push(code);
-  } else {
-    state.items[idx].actions = state.items[idx].actions.filter(a => a !== code);
-  }
-}
-
-function deleteItem(idx) { 
-  if(confirm('Удалить позицию?')){ 
-    state.items.splice(idx,1); 
-    renderItems(); 
-    renderISO(); 
-    showToast('Позиция удалена');
-  } 
-}
-
+function setStatus(idx, status) { state.items[idx].status = status; renderItems(); }
+function deleteItem(idx) { if(confirm('Удалить позицию?')){ state.items.splice(idx,1); renderItems(); renderISO(); showToast('Позиция удалена'); } }
 function addPhoto(idx, input) {
   const file = input.files[0];
   if(!file) return;
   const reader = new FileReader();
-  reader.onload = e => { 
-    state.items[idx].photos.push(e.target.result); 
-    renderItems(); 
-    showToast('Фото добавлено');
-  };
+  reader.onload = e => { state.items[idx].photos.push(e.target.result); renderItems(); showToast('Фото добавлено'); };
   reader.readAsDataURL(file);
 }
-
-function removePhoto(idx, pi) { 
-  state.items[idx].photos.splice(pi,1); 
-  renderItems(); 
-}
+function removePhoto(idx, pi) { state.items[idx].photos.splice(pi,1); renderItems(); }
 
 function goToReport() {
   const failed = state.items.filter(it=>it.status==='fail');
-  if(!failed.length){ 
-    showToast('Нет позиций с отклонениями'); 
-    return; 
-  }
+  if(!failed.length){ showToast('Нет позиций с отклонениями'); return; }
   const now = new Date();
-  const actNum = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}-${String(now.getHours()).padStart(2,'0')}-${String(now.getMinutes()).padStart(2,'0')}`;
-  document.getElementById('act-num').value = actNum;
+  document.getElementById('act-num').value = now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + '-' + String(now.getHours()).padStart(2,'0') + String(now.getMinutes()).padStart(2,'0');
   
   const total = state.items.reduce((s,it)=>s+(Number(it.qty)||0),0);
   document.getElementById('report-summary').innerHTML = `
     <div class="stat-row"><span>Позиций всего</span><span>${state.items.length}</span></div>
     <div class="stat-row"><span>С отклонениями</span><span style="color:#dc2626;">${failed.length}</span></div>
     <div class="stat-row"><span>Объём партии</span><span>${total.toLocaleString('ru')} шт.</span></div>
-    <div class="stat-row"><span>Поставщик</span><span>${state.supplier||'—'}</span></div>
-    <div class="stat-row"><span>Заказ/счет</span><span>${state.order||'—'}</span></div>`;
+    <div class="stat-row"><span>Поставщик</span><span>${state.supplier||'—'}</span></div>`;
   
-  document.getElementById('report-items-preview').innerHTML = failed.map(it=>`
-    <div class="card" style="border-left:3px solid #dc2626;">
-      <div style="font-weight:700;">${it.name||'Позиция'}</div>
-      <div style="font-size:12px;color:#B0B7D0;">${it.qty} ${it.unit}${it.code?' · '+it.code:''}</div>
-      <div style="font-size:12px;margin-top:6px;">${it.note||''}</div>
-    </div>
-  `).join('');
+  document.getElementById('report-items-preview').innerHTML = failed.map(it=>`<div class="card" style="border-left:3px solid #dc2626;"><div style="font-weight:700;">${it.name||'Позиция'}</div><div style="font-size:12px;">${it.qty} ${it.unit}${it.code?' · '+it.code:''}</div><div style="font-size:12px;margin-top:6px;">${it.note||''}</div></div>`).join('');
+  
+  // Показать поле для "Иное"
+  document.getElementById('check-other').onchange = function() {
+    document.getElementById('other-text').style.display = this.checked ? 'block' : 'none';
+  };
   
   goTo('screen-report');
 }
@@ -682,57 +471,117 @@ async function generateDocx() {
   if(btn) btn.disabled = true;
   showToast('Формирование документа...');
   try {
-    const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, AlignmentType, ImageRun } = docx;
+    const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, AlignmentType, BorderStyle, WidthType, ImageRun } = docx;
+    
     const failed = state.items.filter(it=>it.status==='fail');
     const actNum = document.getElementById('act-num').value;
     const cHead = document.getElementById('c-head').value;
     const cOtk = document.getElementById('c-otk').value;
     const cClaim = document.getElementById('c-claim').value;
-    const dateStr = state.date ? new Date(state.date).toLocaleDateString('ru-RU') : new Date().toLocaleDateString('ru-RU');
+    const place = document.getElementById('act-place').value;
+    const dateObj = state.date ? new Date(state.date) : new Date();
+    const day = dateObj.getDate();
+    const monthNames = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+    const month = monthNames[dateObj.getMonth()];
+    const year = dateObj.getFullYear();
     
-    const p = (t, opts={}) => new Paragraph({ alignment: opts.align||AlignmentType.LEFT, spacing:{after:opts.after||80}, children:[new TextRun({text:t, bold:opts.bold, size:22, font:'Arial'})] });
-    const pCenter = (t, opts={}) => new Paragraph({ alignment:AlignmentType.CENTER, spacing:{after:opts.after||80}, children:[new TextRun({text:t, bold:opts.bold, size:24, font:'Arial'})] });
+    // Заключение комиссии
+    let conclusionText = '';
+    if(document.getElementById('check-shortage')?.checked) conclusionText += '☑ Недопоставка Товара\n';
+    if(document.getElementById('check-surplus')?.checked) conclusionText += '☑ Излишки Товара\n';
+    if(document.getElementById('check-assortment')?.checked) conclusionText += '☑ Нарушение ассортимента Товара\n';
+    if(document.getElementById('check-quality')?.checked) conclusionText += '☑ Товар ненадлежащего качества\n';
+    if(document.getElementById('check-incomplete')?.checked) conclusionText += '☑ Некомплектный Товар\n';
+    if(document.getElementById('check-packaging')?.checked) conclusionText += '☑ Нарушение упаковки Товара\n';
+    if(document.getElementById('check-documentation')?.checked) conclusionText += '☑ Отсутствие документации на Товар\n';
+    if(document.getElementById('check-other')?.checked) conclusionText += '☑ Иное: ' + (document.getElementById('other-text')?.value || '');
     
+    const p = (text, opts={}) => new Paragraph({ alignment: opts.align||AlignmentType.LEFT, spacing:{after:opts.after||80}, children:[new TextRun({text, bold:opts.bold, size:22, font:'Times New Roman'})] });
+    const pCenter = (text, opts={}) => new Paragraph({ alignment:AlignmentType.CENTER, spacing:{after:opts.after||80}, children:[new TextRun({text, bold:opts.bold, size:24, font:'Times New Roman'})] });
+    const pRight = (text, opts={}) => new Paragraph({ alignment:AlignmentType.RIGHT, spacing:{after:opts.after||80}, children:[new TextRun({text, bold:opts.bold, size:22, font:'Times New Roman'})] });
+    
+    const border = { style: BorderStyle.SINGLE, size: 1, color: '000000' };
+    const borders = { top: border, bottom: border, left: border, right: border };
+    
+    // Шапка с реквизитами
     const children = [
-      pCenter('ООО «ОПМ»',{bold:true}), pCenter('ИНН: 7802540772',{size:18,after:120}),
-      pCenter('АКТ',{bold:true,size:28,after:40}), pCenter('о выявленном несоответствии',{bold:true,size:24,after:160}),
-      p(`Номер: ${actNum}`), p(`Дата: ${dateStr}`),
-      p(`Поставщик: ${state.supplier||'___________'}`), p(`Покупатель: ${state.buyer}`,{after:60}),
-      p(`Заказ/счет: ${state.order||'___________'}`,{after:120}),
-      p('Комиссия:',{bold:true,after:60}), 
-      p(`Начальник склада: ${cHead||'Морозов А.Л.'}`), 
-      p(`Руководитель ОТК: ${cOtk||'Губанов А.В.'}`), 
-      p(`Специалист по претензиям: ${cClaim||'Гарина Н.В., Дувина С.В.'}`,{after:120}),
-      p('Выявлены следующие несоответствия:',{bold:true,after:80}),
+      new Paragraph({ children: [new TextRun({ text: 'ООО «ОПМ»', bold: true, size: 28, font: 'Times New Roman' })], alignment: AlignmentType.CENTER }),
+      new Paragraph({ children: [new TextRun({ text: 'ИНН: 7802540772, КПП 780201001', size: 20, font: 'Times New Roman' })], alignment: AlignmentType.CENTER }),
+      new Paragraph({ children: [new TextRun({ text: '194292, Санкт-Петербург г, 5-й Верхний пер, дом № 17 литера А, этаж/ч.п. 2/87,88, оф.211,212', size: 18, font: 'Times New Roman' })], alignment: AlignmentType.CENTER }),
+      new Paragraph({ children: [new TextRun({ text: '+7 (812) 600-46-87', size: 18, font: 'Times New Roman' })], alignment: AlignmentType.CENTER, spacing: { after: 200 } }),
+      
+      pCenter('АКТ', {bold:true, size:32, after:40}),
+      pCenter('о выявленном несоответствии поставленной продукции', {bold:true, size:24, after:160}),
+      
+      p(`Номер: ${actNum}`, {after:80}),
+      p(`Дата составления: «${day}» ${month} ${year} г.`, {after:80}),
+      p(`Место составления: ${place}`, {after:120}),
+      p(`Поставщик: ${state.supplier || '___________'}`, {after:60}),
+      p(`Покупатель: ${state.buyer}`, {after:60}),
+      p(`Основание поставки: ${state.order || '___________'}`, {after:60}),
+      p(`Счет-фактура/УПД: ${state.invoice || '___________'}`, {after:120}),
+      
+      p('Комиссия в составе:', {bold:true, after:60}),
+      p(`Начальник склада: ${cHead || '______________________'}`, {after:40}),
+      p(`Руководитель ОТК: ${cOtk || '______________________'}`, {after:40}),
+      p(`Специалист по претензиям: ${cClaim || '______________________'}`, {after:120}),
+      p('провела проверку поставленной продукции и установила следующее:', {after:120}),
     ];
     
-    const rows = [
-      new TableRow({children:[
-        new TableCell({children:[p('№',{bold:true})]}),
-        new TableCell({children:[p('Товар',{bold:true})]}),
-        new TableCell({children:[p('Кол-во',{bold:true})]}),
-        new TableCell({children:[p('Несоответствие',{bold:true})]}),
-        new TableCell({children:[p('Действия',{bold:true})]})
-      ]})
+    // Таблица с позициями
+    const tableRows = [
+      new TableRow({ children: [
+        new TableCell({ borders, width: { size: 500, type: WidthType.DXA }, children: [p('№', {bold:true, align:AlignmentType.CENTER})] }),
+        new TableCell({ borders, width: { size: 3500, type: WidthType.DXA }, children: [p('Наименование Товара', {bold:true, align:AlignmentType.CENTER})] }),
+        new TableCell({ borders, width: { size: 800, type: WidthType.DXA }, children: [p('Ед. изм.', {bold:true, align:AlignmentType.CENTER})] }),
+        new TableCell({ borders, width: { size: 1000, type: WidthType.DXA }, children: [p('Кол-во по документам', {bold:true, align:AlignmentType.CENTER})] }),
+        new TableCell({ borders, width: { size: 1000, type: WidthType.DXA }, children: [p('Фактическое кол-во', {bold:true, align:AlignmentType.CENTER})] }),
+        new TableCell({ borders, width: { size: 1000, type: WidthType.DXA }, children: [p('Расхождение (+, -)', {bold:true, align:AlignmentType.CENTER})] })
+      ] })
     ];
-    failed.forEach((it,i)=>{
-      const nc = NONCONFORMITY_TYPES[it.nonconformityType];
-      rows.push(new TableRow({children:[
-        new TableCell({children:[p(String(i+1))]}),
-        new TableCell({children:[p(it.name+(it.code?'\n('+it.code+')':''))]}),
-        new TableCell({children:[p(`${it.qty} ${it.unit}`)]}),
-        new TableCell({children:[p(nc?.label||'Брак')]}),
-        new TableCell({children:[p(it.actions.map(a=>nc?.actions.find(x=>x.code===a)?.text).filter(Boolean).join('; ')||'—')]})
-      ]}));
+    
+    failed.forEach((it, i) => {
+      const qtyDoc = it.qty || 0;
+      const qtyFact = it.status === 'fail' ? 0 : qtyDoc;
+      const diff = qtyFact - qtyDoc;
+      tableRows.push(new TableRow({ children: [
+        new TableCell({ borders, children: [p(String(i+1), {align:AlignmentType.CENTER})] }),
+        new TableCell({ borders, children: [p(it.name + (it.code ? '\n('+it.code+')' : ''))] }),
+        new TableCell({ borders, children: [p(it.unit, {align:AlignmentType.CENTER})] }),
+        new TableCell({ borders, children: [p(String(qtyDoc), {align:AlignmentType.CENTER})] }),
+        new TableCell({ borders, children: [p(String(qtyFact), {align:AlignmentType.CENTER})] }),
+        new TableCell({ borders, children: [p(String(diff), {align:AlignmentType.CENTER})] })
+      ] }));
     });
-    children.push(new Table({ rows }));
     
-    const doc = new Document({ sections:[{ properties:{ page:{ size:{width:11906,height:16838}, margin:{top:1134,right:1134,bottom:1134,left:1134}} }, children }] });
+    children.push(new Table({ rows: tableRows, width: { size: 7800, type: WidthType.DXA } }));
+    children.push(p('', {after:160}));
+    children.push(p('Описание выявленного несоответствия:', {bold:true, after:80}));
+    failed.forEach(it => { if(it.note) children.push(p(`- ${it.note}`, {after:40})); });
+    if(failed.every(it => !it.note)) children.push(p('—', {after:80}));
+    
+    children.push(p('', {after:80}));
+    children.push(p('Заключение комиссии:', {bold:true, after:80}));
+    conclusionText.split('\n').forEach(line => { if(line.trim()) children.push(p(`☑ ${line}`, {after:40})); });
+    
+    children.push(p('', {after:160}));
+    children.push(p('Подписи членов комиссии:', {bold:true, after:80}));
+    children.push(p(`Начальник склада: ${cHead || '______________________'}`, {after:40}));
+    children.push(p(`Руководитель ОТК: ${cOtk || '______________________'}`, {after:40}));
+    children.push(p(`Специалист по претензиям: ${cClaim || '______________________'}`, {after:40}));
+    
+    const doc = new Document({
+      sections: [{
+        properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 1134, right: 1134, bottom: 1134, left: 1134 } } },
+        children: children
+      }]
+    });
+    
     const buf = await Packer.toBuffer(doc);
     saveAs(new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}), `Акт_несоответствия_${actNum}.docx`);
-    showToast('✅ Документ скачан');
+    showToast('✅ Акт сформирован и скачан');
   } catch(e) { 
-    showToast('❌ Ошибка: '+e.message); 
+    showToast('❌ Ошибка: ' + e.message); 
     console.error(e);
   } finally { 
     if(btn) btn.disabled = false;
@@ -741,51 +590,16 @@ async function generateDocx() {
 
 function sendToManager() {
   const failed = state.items.filter(it=>it.status==='fail');
-  if(!failed.length){ 
-    showToast('Нет позиций с отклонениями для отправки'); 
-    return; 
-  }
-  const subject = encodeURIComponent(`Рапорт о несоответствии: Заказ ${state.order || 'б/н'} | Поставщик: ${state.supplier || '—'}`);
-  const body = encodeURIComponent(`
-Уважаемый руководитель,
-
-Направляю рапорт о выявленных несоответствиях при приёмке крепежной продукции.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ИНФОРМАЦИЯ О ПОСТАВКЕ
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Поставщик: ${state.supplier || '—'}
-Номер заказа/счета: ${state.order || '—'}
-Дата поставки: ${state.date ? new Date(state.date).toLocaleDateString('ru-RU') : '—'}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ВЫЯВЛЕННЫЕ НЕСООТВЕТСТВИЯ (${failed.length} позиций)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-${failed.map((it,i)=>{
-  const nc = NONCONFORMITY_TYPES[it.nonconformityType];
-  return `${i+1}. ${it.name} (${it.qty} ${it.unit})
-   Тип: ${nc?.label || 'Брак'}
-   Действия: ${it.actions.map(a=>nc?.actions.find(x=>x.code===a)?.text).filter(Boolean).join('; ') || '—'}
-   Примечание: ${it.note || '—'}`;
-}).join('\n\n')}
-
-С уважением,
-Комиссия ОТК
-  `);
+  if(!failed.length){ showToast('Нет позиций с отклонениями'); return; }
+  const subject = encodeURIComponent(`Рапорт о несоответствии: ${state.order || 'б/н'} | ${state.supplier || '—'}`);
+  const body = encodeURIComponent(`Уважаемый руководитель,\n\nНаправляю рапорт о выявленных несоответствиях.\n\nПоставщик: ${state.supplier || '—'}\nЗаказ: ${state.order || '—'}\nПозиций с браком: ${failed.length}\n\nДетали:\n${failed.map((it,i)=>`${i+1}. ${it.name} (${it.qty} ${it.unit}) - ${it.note || ''}`).join('\n')}\n\nС уважением, ОТК`);
   window.location.href = `mailto:avg@opm.ru?subject=${subject}&body=${body}`;
   showToast('Открыт почтовый клиент');
 }
 
 function saveToHistory() {
   const records = JSON.parse(localStorage.getItem('qc-history')||'[]');
-  records.unshift({ 
-    id: Date.now(), 
-    date: new Date().toLocaleDateString('ru-RU'), 
-    supplier: state.supplier, 
-    order: state.order, 
-    itemsFailed: state.items.filter(it=>it.status==='fail').length, 
-    actNum: document.getElementById('act-num').value 
-  });
+  records.unshift({ id: Date.now(), date: new Date().toLocaleDateString(), supplier: state.supplier, order: state.order, itemsFailed: state.items.filter(it=>it.status==='fail').length, actNum: document.getElementById('act-num').value });
   localStorage.setItem('qc-history', JSON.stringify(records.slice(0,50)));
   showToast('Сохранено в историю');
 }
@@ -793,30 +607,12 @@ function saveToHistory() {
 function renderHistory() {
   const records = JSON.parse(localStorage.getItem('qc-history')||'[]');
   const el = document.getElementById('history-list');
-  if(!records.length){ 
-    el.innerHTML = '<div style="text-align:center;padding:40px;">Нет сохранённых актов</div>'; 
-    return; 
-  }
-  el.innerHTML = records.map(r => `
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;">
-        <div><div style="font-weight:700;">Акт № ${r.actNum}</div><div style="font-size:12px;color:#B0B7D0;">${r.date} · ${r.supplier||'—'}</div></div>
-        <div><span class="badge-fail">${r.itemsFailed} брак</span></div>
-      </div>
-    </div>
-  `).join('');
+  if(!records.length){ el.innerHTML = '<div style="text-align:center;padding:40px;">Нет сохранённых актов</div>'; return; }
+  el.innerHTML = records.map(r => `<div class="card"><div style="display:flex;justify-content:space-between;"><div><div style="font-weight:700;">Акт № ${r.actNum}</div><div style="font-size:12px;">${r.date} · ${r.supplier||'—'}</div></div><div><span class="badge-fail">${r.itemsFailed} брак</span></div></div></div>`).join('');
 }
 
-function escapeHtml(s) { 
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); 
-}
-
-function showToast(msg) { 
-  const t=document.getElementById('toast'); 
-  t.textContent=msg; 
-  t.classList.add('show'); 
-  setTimeout(()=>t.classList.remove('show'),2500); 
-}
+function escapeHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function showToast(msg) { const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500); }
 
 // Drag & drop
 const dd = document.getElementById('scan-drop');
